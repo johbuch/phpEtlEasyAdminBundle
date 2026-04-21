@@ -68,22 +68,22 @@ class EtlExecutionCrudController extends AbstractCrudController
     {
         if (Crud::PAGE_DETAIL === $pageName) {
             return [
-                FormField::addPanel("Details")->addCssClass("col-12 col-xl-6"),
+                FormField::addFieldset("Details")->addCssClass("col-12 col-xl-6"),
                 Field::new('name'),
                 Field::new('username'),
                 TextField::new('status')->setTemplatePath('@Oliverde8PhpEtlEasyAdmin/fields/status.html.twig'),
-                FormField::addPanel()->addCssClass("col-12 col-xl-6"),
+                FormField::addFieldset()->addCssClass("col-12 col-xl-6"),
                 Field::new('createTime'),
                 Field::new('startTime'),
                 Field::new('endTime'),
                 Field::new('failTime'),
 
-                FormField::addPanel('Execution Inputs')->addCssClass('col-12'),
+                FormField::addFieldset('Execution Inputs')->addCssClass('col-12'),
                 CodeEditorField::new('inputData')->setTemplatePath('@Oliverde8PhpEtlEasyAdmin/fields/code_editor.html.twig')->addCssClass('etl-json-div'),
                 CodeEditorField::new('inputOptions')->setTemplatePath('@Oliverde8PhpEtlEasyAdmin/fields/code_editor.html.twig')->addCssClass('etl-json-div'),
                 CodeEditorField::new('definition')->setTemplatePath('@Oliverde8PhpEtlEasyAdmin/fields/code_editor.html.twig'),
 
-                FormField::addPanel('Execution outpus')->addCssClass("col-12"),
+                FormField::addFieldset('Execution outpus')->addCssClass("col-12"),
                 TextField::new('Files')->formatValue(function ($value, EtlExecution $entity): array {
                     $urls = [];
                     if ($this->isGranted(EtlExecutionVoter::DOWNLOAD, EtlExecution::class)) {
@@ -195,7 +195,7 @@ class EtlExecutionCrudController extends AbstractCrudController
         $user = $this->getUser();
         $username = null;
         if ($user instanceof \Symfony\Component\Security\Core\User\UserInterface) {
-            $username = $user->getUsername();
+            $username = $user->getUserIdentifier();
         }
 
         $execution = new EtlExecution("", "", [], []);
@@ -215,7 +215,7 @@ class EtlExecutionCrudController extends AbstractCrudController
     protected function getChainOptions(): array
     {
         $options = [];
-        foreach (array_keys($this->chainProcessorManager->getRewDefinitions()) as $definitionName) {
+        foreach (array_keys($this->chainProcessorManager->getRawDefinitions()) as $definitionName) {
             $options[$definitionName] = $definitionName;
         }
 
