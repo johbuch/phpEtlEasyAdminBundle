@@ -12,16 +12,11 @@ use Symfony\Component\Routing\Annotation\Route;
 class EtlDashboardController extends AbstractController
 {
 
-    protected EtlExecutionRepository $etlExecutionRepository;
-
     /**
      * EtlDashboardController constructor.
-     *
-     * @param EtlExecutionRepository $etlExecutionRepository
      */
-    public function __construct(EtlExecutionRepository $etlExecutionRepository)
+    public function __construct(protected EtlExecutionRepository $etlExecutionRepository)
     {
-        $this->etlExecutionRepository = $etlExecutionRepository;
     }
 
 

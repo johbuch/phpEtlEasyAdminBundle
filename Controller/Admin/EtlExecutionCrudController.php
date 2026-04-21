@@ -24,23 +24,8 @@ use Oliverde8\PhpEtlBundle\Services\ExecutionContextFactory;
 
 class EtlExecutionCrudController extends AbstractCrudController
 {
-    /** @var ExecutionContextFactory */
-    protected $executionContextFactory;
-
-    /** @var ChainProcessorsManager */
-    protected $chainProcessorManager;
-
-    /** @var AdminUrlGenerator */
-    protected $adminUrlGenerator;
-
-    public function __construct(
-        ExecutionContextFactory $executionContextFactory,
-        ChainProcessorsManager $chainProcessorManager,
-        AdminUrlGenerator $adminUrlGenerator
-    ) {
-        $this->executionContextFactory = $executionContextFactory;
-        $this->chainProcessorManager = $chainProcessorManager;
-        $this->adminUrlGenerator = $adminUrlGenerator;
+    public function __construct(protected \Oliverde8\PhpEtlBundle\Services\ExecutionContextFactory $executionContextFactory, protected \Oliverde8\PhpEtlBundle\Services\ChainProcessorsManager $chainProcessorManager, protected \EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator $adminUrlGenerator)
+    {
     }
 
 
@@ -62,6 +47,7 @@ class EtlExecutionCrudController extends AbstractCrudController
         if (!$this->isGranted(EtlExecutionVoter::QUEUE, EtlExecution::class)) {
             $actions->remove(Crud::PAGE_INDEX, Action::NEW);
         }
+
         if (!$this->isGranted(EtlExecutionVoter::VIEW, EtlExecution::class)) {
             $actions->remove(Crud::PAGE_INDEX, Action::DETAIL);
         }
@@ -98,14 +84,14 @@ class EtlExecutionCrudController extends AbstractCrudController
                 CodeEditorField::new('definition')->setTemplatePath('@Oliverde8PhpEtlEasyAdmin/fields/code_editor.html.twig'),
 
                 FormField::addPanel('Execution outpus')->addCssClass("col-12"),
-                TextField::new('Files')->formatValue(function ($value, EtlExecution $entity) {
+                TextField::new('Files')->formatValue(function ($value, EtlExecution $entity): array {
                     $urls = [];
                     if ($this->isGranted(EtlExecutionVoter::DOWNLOAD, EtlExecution::class)) {
 
                         $context = $this->executionContextFactory->get(['etl' => ['execution' => $entity]]);
                         $files = $context->getFileSystem()->listContents("/");
                         foreach ($files as $file) {
-                            if (strpos($file, '.') !== 0) {
+                            if (!str_starts_with($file, '.')) {
                                 $url = $this->adminUrlGenerator
                                     ->setRoute("etl_execution_download_file", ['execution' => $entity->getId(), 'filename' => $file])
                                     ->generateUrl();
@@ -119,7 +105,7 @@ class EtlExecutionCrudController extends AbstractCrudController
                 })->setTemplatePath('@Oliverde8PhpEtlEasyAdmin/fields/files.html.twig'),
 
                 CodeEditorField::new('errorMessage')->setTemplatePath('@Oliverde8PhpEtlEasyAdmin/fields/code_editor.html.twig'),
-                TextField::new('Logs')->formatValue(function ($value, EtlExecution $entity) {
+                TextField::new('Logs')->formatValue(function ($value, EtlExecution $entity): array {
                     $context = $this->executionContextFactory->get(['etl' => ['execution' => $entity]]);
                     $logs = [];
                     if ($context->getFileSystem()->fileExists("execution.log")) {
@@ -129,16 +115,18 @@ class EtlExecutionCrudController extends AbstractCrudController
                             $logs[] = $line;
                             $i++;
                         }
+
                         fclose($file);
                     }
 
                     $url = "";
                     $moreLogs = false;
-                    if (!empty($logs)) {
+                    if ($logs !== []) {
                         $url = $this->adminUrlGenerator
                             ->setRoute("etl_execution_download_file", ['execution' => $entity->getId(), 'filename' => 'execution.log'])
                             ->generateUrl();
                     }
+
                     if (count($logs) > 100) {
                         $moreLogs = true;
                     }
@@ -152,6 +140,7 @@ class EtlExecutionCrudController extends AbstractCrudController
 
             ];
         }
+
         if (Crud::PAGE_INDEX === $pageName) {
             return [
                 Field::new('id'),
@@ -163,6 +152,7 @@ class EtlExecutionCrudController extends AbstractCrudController
                 Field::new('endTime'),
             ];
         }
+
         if (Crud::PAGE_NEW === $pageName) {
             return [
                 ChoiceField::new('name', 'Chain Name')
@@ -200,11 +190,11 @@ class EtlExecutionCrudController extends AbstractCrudController
             ->add('endTime');
     }
 
-    public function createEntity(string $entityFqcn)
+    public function createEntity(string $entityFqcn): object
     {
         $user = $this->getUser();
         $username = null;
-        if ($user) {
+        if ($user instanceof \Symfony\Component\Security\Core\User\UserInterface) {
             $username = $user->getUsername();
         }
 
@@ -219,7 +209,10 @@ class EtlExecutionCrudController extends AbstractCrudController
         $entityManager->flush();
     }
 
-    protected function getChainOptions()
+    /**
+     * @return int[]|string[]
+     */
+    protected function getChainOptions(): array
     {
         $options = [];
         foreach (array_keys($this->chainProcessorManager->getRewDefinitions()) as $definitionName) {

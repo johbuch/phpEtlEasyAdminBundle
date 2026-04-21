@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 
 namespace Oliverde8\PhpEtlEasyAdminBundle\DependencyInjection;
 
@@ -14,7 +15,7 @@ class Oliverde8PhpEtlEasyAdminExtension extends Extension
     /**
      * @inheritDoc
      */
-    public function load(array $configs, ContainerBuilder $container)
+    public function load(array $configs, ContainerBuilder $container): void
     {
         $loader = new YamlFileLoader($container, new FileLocator(\dirname(__DIR__).'/Resources/config'));
         $loader->load('services.yml');

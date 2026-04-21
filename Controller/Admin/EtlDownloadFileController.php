@@ -17,15 +17,8 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class EtlDownloadFileController extends AbstractController
 {
-    /** @var ExecutionContextFactory */
-    protected $executionContextFactory;
-
-    /**
-     * @param ExecutionContextFactory $executionContextFactory
-     */
-    public function __construct(ExecutionContextFactory $executionContextFactory)
+    public function __construct(protected \Oliverde8\PhpEtlBundle\Services\ExecutionContextFactory $executionContextFactory)
     {
-        $this->executionContextFactory = $executionContextFactory;
     }
 
     /**
@@ -39,14 +32,14 @@ class EtlDownloadFileController extends AbstractController
         $context = $this->executionContextFactory->get(['etl' => ['execution' => $execution]]);
         $file = $context->getFileSystem()->readStream($filename);
 
-        $response = new StreamedResponse(function () use ($file) {
+        $response = new StreamedResponse(function () use ($file): void {
             $outputStream = fopen('php://output', 'wb');
             stream_copy_to_stream($file, $outputStream);
         });
 
         $disposition = HeaderUtils::makeDisposition(
             HeaderUtils::DISPOSITION_ATTACHMENT,
-            "execution-{$execution->getName()}-{$execution->getId()}-" . $filename
+            sprintf('execution-%s-%s-', $execution->getName(), $execution->getId()) . $filename
         );
         $response->headers->set('Content-Disposition', $disposition);
 
