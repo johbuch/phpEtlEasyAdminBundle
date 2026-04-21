@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Oliverde8\PhpEtlEasyAdminBundle\Controller\Admin;
 
 use Doctrine\ORM\EntityManagerInterface;
@@ -8,6 +10,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
+use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\Field;
@@ -16,18 +19,15 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Oliverde8\PhpEtlBundle\Entity\EtlExecution;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use Oliverde8\PhpEtlBundle\Security\EtlExecutionVoter;
 use Oliverde8\PhpEtlBundle\Services\ChainProcessorsManager;
-use Oliverde8\PhpEtlBundle\Services\ChainWorkDirManager;
 use Oliverde8\PhpEtlBundle\Services\ExecutionContextFactory;
 
 class EtlExecutionCrudController extends AbstractCrudController
 {
-    public function __construct(protected \Oliverde8\PhpEtlBundle\Services\ExecutionContextFactory $executionContextFactory, protected \Oliverde8\PhpEtlBundle\Services\ChainProcessorsManager $chainProcessorManager, protected \EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator $adminUrlGenerator)
+    public function __construct(protected ExecutionContextFactory $executionContextFactory, protected ChainProcessorsManager $chainProcessorManager, protected AdminUrlGenerator $adminUrlGenerator)
     {
     }
-
 
     public static function getEntityFqcn(): string
     {
@@ -58,9 +58,9 @@ class EtlExecutionCrudController extends AbstractCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
-            ->setPageTitle("index", "Etl Executions")
+            ->setPageTitle('index', 'Etl Executions')
             ->setDateTimeFormat('dd/MM/y - HH:mm:ss')
-            ->setSearchFields(["name", "id"])
+            ->setSearchFields(['name', 'id'])
             ->setDefaultSort(['id' => 'DESC']);
     }
 
@@ -68,11 +68,11 @@ class EtlExecutionCrudController extends AbstractCrudController
     {
         if (Crud::PAGE_DETAIL === $pageName) {
             return [
-                FormField::addFieldset("Details")->addCssClass("col-12 col-xl-6"),
+                FormField::addFieldset('Details')->addCssClass('col-12 col-xl-6'),
                 Field::new('name'),
                 Field::new('username'),
                 TextField::new('status')->setTemplatePath('@Oliverde8PhpEtlEasyAdmin/fields/status.html.twig'),
-                FormField::addFieldset()->addCssClass("col-12 col-xl-6"),
+                FormField::addFieldset()->addCssClass('col-12 col-xl-6'),
                 Field::new('createTime'),
                 Field::new('startTime'),
                 Field::new('endTime'),
@@ -83,17 +83,17 @@ class EtlExecutionCrudController extends AbstractCrudController
                 CodeEditorField::new('inputOptions')->setTemplatePath('@Oliverde8PhpEtlEasyAdmin/fields/code_editor.html.twig')->addCssClass('etl-json-div'),
                 CodeEditorField::new('definition')->setTemplatePath('@Oliverde8PhpEtlEasyAdmin/fields/code_editor.html.twig'),
 
-                FormField::addFieldset('Execution outpus')->addCssClass("col-12"),
+                FormField::addFieldset('Execution outpus')->addCssClass('col-12'),
                 TextField::new('Files')->formatValue(function ($value, EtlExecution $entity): array {
                     $urls = [];
                     if ($this->isGranted(EtlExecutionVoter::DOWNLOAD, EtlExecution::class)) {
 
                         $context = $this->executionContextFactory->get(['etl' => ['execution' => $entity]]);
-                        $files = $context->getFileSystem()->listContents("/");
+                        $files   = $context->getFileSystem()->listContents('/');
                         foreach ($files as $file) {
                             if (!str_starts_with($file, '.')) {
                                 $url = $this->adminUrlGenerator
-                                    ->setRoute("etl_execution_download_file", ['execution' => $entity->getId(), 'filename' => $file])
+                                    ->setRoute('etl_execution_download_file', ['execution' => $entity->getId(), 'filename' => $file])
                                     ->generateUrl();
 
                                 $urls[$url] = $file;
@@ -107,34 +107,34 @@ class EtlExecutionCrudController extends AbstractCrudController
                 CodeEditorField::new('errorMessage')->setTemplatePath('@Oliverde8PhpEtlEasyAdmin/fields/code_editor.html.twig'),
                 TextField::new('Logs')->formatValue(function ($value, EtlExecution $entity): array {
                     $context = $this->executionContextFactory->get(['etl' => ['execution' => $entity]]);
-                    $logs = [];
-                    if ($context->getFileSystem()->fileExists("execution.log")) {
-                        $file = $context->getFileSystem()->readStream("execution.log");
-                        $i = 0;
+                    $logs    = [];
+                    if ($context->getFileSystem()->fileExists('execution.log')) {
+                        $file = $context->getFileSystem()->readStream('execution.log');
+                        $i    = 0;
                         while ($i < 100 && $line = fgets($file)) {
                             $logs[] = $line;
-                            $i++;
+                            ++$i;
                         }
 
                         fclose($file);
                     }
 
-                    $url = "";
+                    $url      = '';
                     $moreLogs = false;
-                    if ($logs !== []) {
+                    if ([] !== $logs) {
                         $url = $this->adminUrlGenerator
-                            ->setRoute("etl_execution_download_file", ['execution' => $entity->getId(), 'filename' => 'execution.log'])
+                            ->setRoute('etl_execution_download_file', ['execution' => $entity->getId(), 'filename' => 'execution.log'])
                             ->generateUrl();
                     }
 
-                    if (count($logs) > 100) {
+                    if (\count($logs) > 100) {
                         $moreLogs = true;
                     }
 
                     return [
-                        "lines" => $logs,
+                        'lines'       => $logs,
                         'downloadUrl' => $url,
-                        'moreLogs' => $moreLogs,
+                        'moreLogs'    => $moreLogs,
                     ];
                 })->setTemplatePath('@Oliverde8PhpEtlEasyAdmin/fields/logs.html.twig'),
 
@@ -157,8 +157,8 @@ class EtlExecutionCrudController extends AbstractCrudController
             return [
                 ChoiceField::new('name', 'Chain Name')
                     ->setChoices($this->getChainOptions()),
-                CodeEditorField::new('inputData')->setCssClass("etl-json-input"),
-                CodeEditorField::new('inputOptions')->setCssClass("etl-json-input"),
+                CodeEditorField::new('inputData')->setCssClass('etl-json-input'),
+                CodeEditorField::new('inputOptions')->setCssClass('etl-json-input'),
             ];
         }
 
@@ -192,14 +192,15 @@ class EtlExecutionCrudController extends AbstractCrudController
 
     public function createEntity(string $entityFqcn): object
     {
-        $user = $this->getUser();
+        $user     = $this->getUser();
         $username = null;
         if ($user instanceof \Symfony\Component\Security\Core\User\UserInterface) {
             $username = $user->getUserIdentifier();
         }
 
-        $execution = new EtlExecution("", "", [], []);
+        $execution = new EtlExecution('', '', [], []);
         $execution->setUsername($username);
+
         return $execution;
     }
 
